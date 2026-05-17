@@ -183,6 +183,20 @@ if ($metodo === 'POST') {
             movimentarEstoqueVenda($conn, $it['produto_id'], $filial_id, $it['quantidade'], 'venda', $numero_pedido, $pedido_id);
         }
 
+        // Criar registro financeiro
+        $stmt = $conn->prepare("
+            INSERT INTO financeiro
+                (empresa_id, filial_id, tipo, descricao, categoria, valor,
+                 data_vencimento, status, forma_pagamento, pedido_id)
+            VALUES (?, ?, 'receita', ?, 'Venda', ?, CURDATE(), 'pendente', ?, ?)
+        ");
+        $desc_fin = "Pedido #{$numero_pedido}";
+        $stmt->bind_param('iisdsi', $empresa_id, $filial_id, $desc_fin, $total, $forma_pagamento, $pedido_id);
+        if (!$stmt->execute()) {
+            throw new Exception($stmt->error);
+        }
+        $stmt->close();
+
         $conn->commit();
     } catch (Exception $e) {
         $conn->rollback();

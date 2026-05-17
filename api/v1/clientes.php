@@ -12,22 +12,40 @@ $metodo = $_SERVER['REQUEST_METHOD'];
 // GET — buscar cliente por telefone
 // ------------------------------------------------------------------
 if ($metodo === 'GET') {
-    $telefone = preg_replace('/\D/', '', $_GET['telefone'] ?? '');
+    $telefone   = preg_replace('/\D/', '', $_GET['telefone'] ?? '');
+    $empresa_id = (int)($_GET['empresa_id'] ?? 0);
+
     if (strlen($telefone) < 8) {
         apiError(400, 'Parâmetro "telefone" inválido ou ausente (mínimo 8 dígitos).');
     }
 
     $like = '%' . $telefone . '%';
-    $stmt = $conn->prepare("
-        SELECT id, nome, cpf_cnpj, telefone, whatsapp, email,
-               endereco, numero, bairro, cidade, cep, referencia, observacoes, status
-        FROM clientes
-        WHERE (REGEXP_REPLACE(telefone,  '[^0-9]', '') LIKE ?
-            OR REGEXP_REPLACE(whatsapp, '[^0-9]', '') LIKE ?)
-        ORDER BY nome
-        LIMIT 5
-    ");
-    $stmt->bind_param('ss', $like, $like);
+
+    if ($empresa_id > 0) {
+        $stmt = $conn->prepare("
+            SELECT id, empresa_id, filial_id, nome, cpf_cnpj, telefone, whatsapp, email,
+                   endereco, numero, bairro, cidade, cep, referencia, observacoes, status
+            FROM clientes
+            WHERE empresa_id = ?
+              AND (REGEXP_REPLACE(telefone,  '[^0-9]', '') LIKE ?
+                OR REGEXP_REPLACE(whatsapp, '[^0-9]', '') LIKE ?)
+            ORDER BY nome
+            LIMIT 5
+        ");
+        $stmt->bind_param('iss', $empresa_id, $like, $like);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT id, empresa_id, filial_id, nome, cpf_cnpj, telefone, whatsapp, email,
+                   endereco, numero, bairro, cidade, cep, referencia, observacoes, status
+            FROM clientes
+            WHERE (REGEXP_REPLACE(telefone,  '[^0-9]', '') LIKE ?
+                OR REGEXP_REPLACE(whatsapp, '[^0-9]', '') LIKE ?)
+            ORDER BY nome
+            LIMIT 5
+        ");
+        $stmt->bind_param('ss', $like, $like);
+    }
+
     $stmt->execute();
     $res = $stmt->get_result();
     $stmt->close();
@@ -55,6 +73,7 @@ if ($metodo === 'POST') {
         apiError(422, 'Campos obrigatórios: empresa_id, nome.');
     }
 
+    $filial_id   = !empty($body['filial_id']) ? (int)$body['filial_id'] : null;
     $cpf_cnpj    = trim($body['cpf_cnpj']    ?? '');
     $telefone    = trim($body['telefone']    ?? '');
     $whatsapp    = trim($body['whatsapp']    ?? $telefone);
@@ -99,13 +118,13 @@ if ($metodo === 'POST') {
 
     $stmt = $conn->prepare("
         INSERT INTO clientes
-            (empresa_id, nome, cpf_cnpj, telefone, whatsapp, email,
+            (empresa_id, filial_id, nome, cpf_cnpj, telefone, whatsapp, email,
              endereco, numero, bairro, cidade, cep, referencia, observacoes)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ");
     $stmt->bind_param(
-        'issssssssssss',
-        $empresa_id, $nome, $cpf_cnpj, $telefone, $whatsapp, $email,
+        'iissssssssssss',
+        $empresa_id, $filial_id, $nome, $cpf_cnpj, $telefone, $whatsapp, $email,
         $endereco, $numero, $bairro, $cidade, $cep, $referencia, $observacoes
     );
 

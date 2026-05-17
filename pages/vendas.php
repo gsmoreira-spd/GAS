@@ -56,6 +56,34 @@ if (isset($_GET['status']) && isset($_GET['id'])) {
             }
             
             registrarLog($conn, 'atualizar_status_pedido', "Pedido #$id: $status_antigo → $novo_status");
+
+            // Notificar n8n (WhatsApp) nos status relevantes ao cliente
+            $n8n_status_url = getenv('N8N_WEBHOOK_STATUS_URL') ?: '';
+            if ($n8n_status_url && in_array($novo_status, ['separacao','entrega','entregue','cancelado'])) {
+                $stmt_wpp = $conn->prepare("SELECT c.whatsapp, c.telefone FROM pedidos p INNER JOIN clientes c ON c.id = p.cliente_id WHERE p.id = ?");
+                $stmt_wpp->bind_param('i', $id);
+                $stmt_wpp->execute();
+                $cli = $stmt_wpp->get_result()->fetch_assoc();
+                $stmt_wpp->close();
+                if ($cli) {
+                    $payload = json_encode([
+                        'evento'    => 'status_pedido',
+                        'pedido_id' => $id,
+                        'numero'    => $pedido['numero'],
+                        'status'    => $novo_status,
+                        'telefone'  => $cli['whatsapp'] ?: $cli['telefone'],
+                    ]);
+                    $ch = curl_init($n8n_status_url);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+                    curl_exec($ch);
+                    curl_close($ch);
+                }
+            }
+
             $msg = '<div class="alert alert-success">✅ Status atualizado!</div>';
         }
     }
