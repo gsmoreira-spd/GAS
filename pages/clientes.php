@@ -10,9 +10,19 @@ $msg = '';
 $empresa_id = empresaAtiva();
 if (!$empresa_id) { echo "<div class='alert alert-warning'>Selecione uma empresa.</div>"; require_once '../includes/footer.php'; exit; }
 
+// Filiais disponíveis para o formulário
+$filiais_lista = [];
+$res_fil = $conn->prepare("SELECT id, nome FROM filiais WHERE empresa_id = ? AND status = 'ativo' ORDER BY nome");
+$res_fil->bind_param("i", $empresa_id);
+$res_fil->execute();
+$ff = $res_fil->get_result();
+while ($fl = $ff->fetch_assoc()) { $filiais_lista[] = $fl; }
+$res_fil->close();
+
 // SALVAR
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id          = (int)($_POST['id'] ?? 0);
+    $filial_id   = !empty($_POST['filial_id']) ? (int)$_POST['filial_id'] : null;
     $nome        = limpar($_POST['nome']);
     $cpf_cnpj    = limpar($_POST['cpf_cnpj']);
     $telefone    = limpar($_POST['telefone']);
@@ -27,13 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status      = limpar($_POST['status'] ?? 'ativo');
 
     if ($id > 0) {
-        $stmt = $conn->prepare("UPDATE clientes SET nome=?,cpf_cnpj=?,telefone=?,whatsapp=?,email=?,endereco=?,bairro=?,cidade=?,cep=?,referencia=?,observacoes=?,status=? WHERE id=? AND empresa_id=?");
-        $stmt->bind_param("ssssssssssssii", $nome,$cpf_cnpj,$telefone,$whatsapp,$email,$endereco,$bairro,$cidade,$cep,$referencia,$observacoes,$status,$id,$empresa_id);
+        $stmt = $conn->prepare("UPDATE clientes SET filial_id=?,nome=?,cpf_cnpj=?,telefone=?,whatsapp=?,email=?,endereco=?,bairro=?,cidade=?,cep=?,referencia=?,observacoes=?,status=? WHERE id=? AND empresa_id=?");
+        $stmt->bind_param("issssssssssssii", $filial_id,$nome,$cpf_cnpj,$telefone,$whatsapp,$email,$endereco,$bairro,$cidade,$cep,$referencia,$observacoes,$status,$id,$empresa_id);
         $stmt->execute();
         $msg = '<div class="alert alert-success">✅ Cliente atualizado!</div>';
     } else {
-        $stmt = $conn->prepare("INSERT INTO clientes (empresa_id,nome,cpf_cnpj,telefone,whatsapp,email,endereco,bairro,cidade,cep,referencia,observacoes,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
-        $stmt->bind_param("issssssssssss", $empresa_id,$nome,$cpf_cnpj,$telefone,$whatsapp,$email,$endereco,$bairro,$cidade,$cep,$referencia,$observacoes,$status);
+        $stmt = $conn->prepare("INSERT INTO clientes (empresa_id,filial_id,nome,cpf_cnpj,telefone,whatsapp,email,endereco,bairro,cidade,cep,referencia,observacoes,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        $stmt->bind_param("iissssssssssss", $empresa_id,$filial_id,$nome,$cpf_cnpj,$telefone,$whatsapp,$email,$endereco,$bairro,$cidade,$cep,$referencia,$observacoes,$status);
         $stmt->execute();
         $msg = '<div class="alert alert-success">✅ Cliente cadastrado!</div>';
     }
@@ -59,7 +69,7 @@ if (isset($_GET['editar'])) {
 }
 
 // LISTAR
-$stmt = $conn->prepare("SELECT * FROM clientes WHERE empresa_id = ? ORDER BY nome");
+$stmt = $conn->prepare("SELECT c.*, f.nome AS filial_nome FROM clientes c LEFT JOIN filiais f ON f.id = c.filial_id WHERE c.empresa_id = ? ORDER BY c.nome");
 $stmt->bind_param("i", $empresa_id);
 $stmt->execute();
 $clientes = $stmt->get_result();
@@ -85,7 +95,7 @@ $clientes = $stmt->get_result();
             <th>CPF/CNPJ</th>
             <th>WhatsApp</th>
             <th>Endereço</th>
-            <th>Cidade</th>
+            <th>Filial</th>
             <th>Status</th>
             <th>Ações</th>
         </tr>
@@ -102,8 +112,8 @@ $clientes = $stmt->get_result();
                         </a>
                     <?php endif; ?>
                 </td>
-                <td><?= $c['endereco'] ?> - <?= $c['bairro'] ?></td>
-                <td><?= $c['cidade'] ?></td>
+                <td><?= $c['endereco'] ?><?= $c['bairro'] ? ' - ' . $c['bairro'] : '' ?></td>
+                <td><?= $c['filial_nome'] ? '<span class="badge badge-info">' . escapar($c['filial_nome']) . '</span>' : '<span style="color:var(--gray-400)">—</span>' ?></td>
                 <td><?= statusBadge($c['status']) ?></td>
                 <td class="actions">
                     <a href="?editar=<?= $c['id'] ?>" class="btn-icon edit"><i class="fas fa-pen"></i></a>
@@ -132,9 +142,22 @@ $clientes = $stmt->get_result();
                 </div>
                 <div class="form-row">
                     <div class="form-group">
+                        <label>Filial</label>
+                        <select name="filial_id">
+                            <option value="">-- Sem filial definida --</option>
+                            <?php foreach ($filiais_lista as $fl): ?>
+                                <option value="<?= $fl['id'] ?>" <?= ($editar['filial_id'] ?? '') == $fl['id'] ? 'selected' : '' ?>>
+                                    <?= escapar($fl['nome']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>CPF / CNPJ</label>
                         <input type="text" name="cpf_cnpj" value="<?= $editar['cpf_cnpj'] ?? '' ?>" oninput="mascaraCpfCnpj(this)">
                     </div>
+                </div>
+                <div class="form-row">
                     <div class="form-group">
                         <label>Telefone</label>
                         <input type="text" name="telefone" value="<?= $editar['telefone'] ?? '' ?>" oninput="mascaraTelefone(this)">
@@ -143,10 +166,10 @@ $clientes = $stmt->get_result();
                         <label>WhatsApp</label>
                         <input type="text" name="whatsapp" value="<?= $editar['whatsapp'] ?? '' ?>" oninput="mascaraTelefone(this)">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" value="<?= $editar['email'] ?? '' ?>">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" value="<?= $editar['email'] ?? '' ?>">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Endereço</label>

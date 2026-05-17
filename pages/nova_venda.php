@@ -109,8 +109,11 @@ while ($ff = $res_fil->fetch_assoc()) {
 // Filial selecionada para a venda (POST > GET > sessão)
 $filial_venda = (int)($_POST['filial_id'] ?? $_GET['filial'] ?? filialAtiva());
 
+// Cliente pré-selecionado via GET (após trocar filial automaticamente)
+$cliente_presel = (int)($_GET['cliente_id'] ?? 0);
+
 // Clientes
-$clientes = $conn->query("SELECT id, nome, telefone, endereco, bairro FROM clientes WHERE empresa_id = {$empresa_id} AND status = 'ativo' ORDER BY nome");
+$clientes = $conn->query("SELECT id, nome, telefone, filial_id FROM clientes WHERE empresa_id = {$empresa_id} AND status = 'ativo' ORDER BY nome");
 
 // Produtos com estoque da filial selecionada
 $produtos = $conn->query("
@@ -159,10 +162,14 @@ $motoboys = $conn->query("
             <!-- CLIENTE -->
             <div class="form-group">
                 <label><i class="fas fa-user"></i> Cliente *</label>
-                <select name="cliente_id" required>
+                <select name="cliente_id" required onchange="clienteSelecionado(this)">
                     <option value="">-- Selecione o cliente --</option>
                     <?php while ($c = $clientes->fetch_assoc()): ?>
-                        <option value="<?= $c['id'] ?>"><?= escapar($c['nome']) ?> - <?= $c['telefone'] ?></option>
+                        <option value="<?= $c['id'] ?>"
+                                data-filial="<?= (int)$c['filial_id'] ?>"
+                                <?= $c['id'] == $cliente_presel ? 'selected' : '' ?>>
+                            <?= escapar($c['nome']) ?> - <?= $c['telefone'] ?>
+                        </option>
                     <?php endwhile; ?>
                 </select>
             </div>
@@ -266,19 +273,21 @@ $motoboys = $conn->query("
 </div>
 
 <script>
-// Trocar filial recarrega a página para atualizar estoque e motoboys
 function trocarFilial(filialId) {
-    // Salva num form oculto e recarrega via GET
-    window.location.href = 'nova_venda.php?filial=' + filialId;
+    const clienteId = document.querySelector('[name=cliente_id]').value;
+    let url = 'nova_venda.php?filial=' + filialId;
+    if (clienteId) url += '&cliente_id=' + clienteId;
+    window.location.href = url;
 }
 
-<?php
-// Se veio via GET com filial, seta no JS
-$filial_get = (int)($_GET['filial'] ?? 0);
-if ($filial_get > 0) {
-    echo "document.addEventListener('DOMContentLoaded', function(){ document.getElementById('filial_id').value = {$filial_get}; });";
+function clienteSelecionado(select) {
+    const option = select.options[select.selectedIndex];
+    const filialCliente = parseInt(option.dataset.filial);
+    const filialAtual = parseInt(document.getElementById('filial_id').value);
+    if (filialCliente && filialCliente !== filialAtual) {
+        window.location.href = 'nova_venda.php?filial=' + filialCliente + '&cliente_id=' + select.value;
+    }
 }
-?>
 
 function preencherPreco(select) {
     const option = select.options[select.selectedIndex];

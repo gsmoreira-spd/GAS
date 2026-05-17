@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS movimentacao_estoque (
 CREATE TABLE IF NOT EXISTS clientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     empresa_id INT NOT NULL,
+    filial_id INT DEFAULT NULL,
     nome VARCHAR(150) NOT NULL,
     cpf_cnpj VARCHAR(20),
     telefone VARCHAR(20),
@@ -137,7 +138,8 @@ CREATE TABLE IF NOT EXISTS clientes (
     observacoes TEXT,
     status ENUM('ativo','inativo') DEFAULT 'ativo',
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+    FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    FOREIGN KEY (filial_id) REFERENCES filiais(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ============================================================
