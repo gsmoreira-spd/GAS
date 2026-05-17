@@ -1,13 +1,26 @@
-# Configurações locais do Claude Code
-.claude/
+# Ambiente — NUNCA versionar
+.env
+.env.local
+.env.production
 
-# Configuração local com senha do banco (não versionar)
+# Configurações locais
+.claude/
 config/config.local.php
 
-# Logs e cache
+# Backups gerados
+backups/*.sql
+backups/*.sql.gz
+
+# Logs
 *.log
 *.cache
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Uploads de usuário (se existir)
+assets/uploads/
+
+# Dependências (se usar Composer no futuro)
+vendor/

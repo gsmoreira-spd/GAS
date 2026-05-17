@@ -1,18 +1,23 @@
 <?php
 /**
  * INSTALADOR AUTOMÁTICO DO SISTEMA
- * 
+ *
  * Acesse pelo navegador: http://localhost/gasagua_erp/instalar.php
- * 
- * Este script cria o banco de dados e insere os dados iniciais
- * incluindo o usuário admin com senha criptografada corretamente.
+ * Em produção este arquivo é bloqueado automaticamente.
  */
 
+// Bloquear acesso em ambiente de produção
+$env = getenv('APP_ENV') ?: 'development';
+if ($env === 'production') {
+    http_response_code(403);
+    die('Acesso negado. Remova ou proteja instalar.php em produção.');
+}
+
 // Configurações de conexão (ajuste se necessário)
-$host = 'localhost';
-$user = 'root';
-$pass = '';
-$db_name = 'gasagua_erp';
+$host = getenv('DB_HOST')     ?: 'localhost';
+$user = getenv('DB_USERNAME') ?: 'root';
+$pass = getenv('DB_PASSWORD') ?: '';
+$db_name = getenv('DB_DATABASE') ?: 'gasagua_erp';
 
 // Hash da senha admin123 gerado dinamicamente
 $senha_admin = password_hash('admin123', PASSWORD_DEFAULT);

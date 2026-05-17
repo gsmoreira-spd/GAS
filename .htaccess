@@ -1,0 +1,19 @@
+Options -Indexes
+Options +FollowSymLinks
+
+# Bloquear acesso direto a arquivos sensíveis
+<FilesMatch "\.(env|sql|sh|md|gitignore|yml|yaml|ini|log)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquear instalar.php diretamente via Apache quando APP_ENV=production
+# (o PHP também bloqueia, mas esta é uma segunda camada)
+<Files "instalar.php">
+    # Remova o comentário abaixo para bloquear via Apache independente do PHP:
+    # Require all denied
+</Files>
+
+# Rewrite para remover /gasagua_erp/ da URL em containers Docker
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+</IfModule>

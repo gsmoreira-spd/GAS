@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
 CREATE TABLE IF NOT EXISTS produtos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     empresa_id INT NOT NULL,
+    filial_id INT NOT NULL,
     codigo VARCHAR(50) NOT NULL,
     nome VARCHAR(150) NOT NULL,
     tipo ENUM('vasilhame_gas','vasilhame_agua','gas_reposicao','gas_completo','agua_reposicao','agua_completa','outro') NOT NULL,
@@ -80,6 +81,7 @@ CREATE TABLE IF NOT EXISTS produtos (
     status ENUM('ativo','inativo') DEFAULT 'ativo',
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    FOREIGN KEY (filial_id) REFERENCES filiais(id) ON DELETE CASCADE,
     FOREIGN KEY (vasilhame_id) REFERENCES produtos(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
@@ -127,6 +129,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     whatsapp VARCHAR(20),
     email VARCHAR(100),
     endereco VARCHAR(255),
+    numero VARCHAR(10),
     bairro VARCHAR(100),
     cidade VARCHAR(100),
     cep VARCHAR(10),
@@ -173,6 +176,7 @@ CREATE TABLE IF NOT EXISTS pedidos (
     forma_pagamento ENUM('pix','dinheiro','cartao','fiado') DEFAULT 'dinheiro',
     status ENUM('pendente','separacao','entrega','entregue','finalizado','cancelado') DEFAULT 'pendente',
     observacoes TEXT,
+    origem VARCHAR(30) DEFAULT 'manual',
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
@@ -250,13 +254,13 @@ INSERT INTO usuarios (nome, email, senha, perfil, empresa_id, filial_id) VALUES
 ('Administrador', 'admin@sistema.com', '$2y$10$YourHashWillBeReplacedByInstaller', 'admin', 1, 1);
 
 -- Produtos padrão
-INSERT INTO produtos (empresa_id, codigo, nome, tipo, vasilhame_id, preco_compra, preco_venda, unidade, estoque_minimo) VALUES
-(1, 'VAS-GAS13',  'Vasilhame Gás P13',            'vasilhame_gas',   NULL, 180.00,   0.00, 'UN', 5),
-(1, 'VAS-AGUA20', 'Vasilhame Galão 20L',           'vasilhame_agua',  NULL,  25.00,   0.00, 'UN', 10),
-(1, 'GAS-REP13',  'Gás P13 Reposição (troca)',     'gas_reposicao',   NULL,  80.00, 110.00, 'UN', 10),
-(1, 'GAS-COMP13', 'Gás P13 Completo (vasilhame+gás)', 'gas_completo',NULL, 260.00, 320.00, 'UN', 5),
-(1, 'AGUA-REP20', 'Água 20L Reposição (troca)',    'agua_reposicao',  NULL,   8.00,  14.00, 'UN', 20),
-(1, 'AGUA-COMP20','Água 20L Completa (galão+água)','agua_completa',   NULL,  33.00,  45.00, 'UN', 5);
+INSERT INTO produtos (empresa_id, filial_id, codigo, nome, tipo, vasilhame_id, preco_compra, preco_venda, unidade, estoque_minimo) VALUES
+(1, 1, 'VAS-GAS13',  'Vasilhame Gás P13',            'vasilhame_gas',   NULL, 180.00,   0.00, 'UN', 5),
+(1, 1, 'VAS-AGUA20', 'Vasilhame Galão 20L',           'vasilhame_agua',  NULL,  25.00,   0.00, 'UN', 10),
+(1, 1, 'GAS-REP13',  'Gás P13 Reposição (troca)',     'gas_reposicao',   NULL,  80.00, 110.00, 'UN', 10),
+(1, 1, 'GAS-COMP13', 'Gás P13 Completo (vasilhame+gás)', 'gas_completo',NULL, 260.00, 320.00, 'UN', 5),
+(1, 1, 'AGUA-REP20', 'Água 20L Reposição (troca)',    'agua_reposicao',  NULL,   8.00,  14.00, 'UN', 20),
+(1, 1, 'AGUA-COMP20','Água 20L Completa (galão+água)','agua_completa',   NULL,  33.00,  45.00, 'UN', 5);
 
 -- Vincular produtos ao seu vasilhame (atualizar vasilhame_id)
 -- GAS-REP13 (id=3) e GAS-COMP13 (id=4) → Vasilhame Gás P13 (id=1)
