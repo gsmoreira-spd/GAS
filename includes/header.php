@@ -135,6 +135,13 @@ $menu_ativo = $menu_ativo ?? '';
                     <span class="menu-icon"><i class="fas fa-dollar-sign"></i></span> Financeiro
                 </a>
             </li>
+            <?php if (in_array($_SESSION['perfil'] ?? '', ['admin','gerente'])): ?>
+            <li>
+                <a href="<?= BASE_URL ?>pages/fechamento_caixa.php" class="<?= $menu_ativo=='fechamento_caixa'?'active':'' ?>">
+                    <span class="menu-icon"><i class="fas fa-cash-register"></i></span> Fechamento de Caixa
+                </a>
+            </li>
+            <?php endif; ?>
             <li>
                 <a href="<?= BASE_URL ?>pages/relatorios.php" class="<?= $menu_ativo=='relatorios'?'active':'' ?>">
                     <span class="menu-icon"><i class="fas fa-chart-line"></i></span> Relatórios
